@@ -1,0 +1,6 @@
+*.exe
+*.yaml
+*.yml
+*.key
+.idea/
+.DS_Store
