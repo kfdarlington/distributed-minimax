@@ -1,0 +1,62 @@
+syntax = "proto3";
+package pb;
+
+option go_package = "github.com/kristian-d/follower/follower/pb";
+
+service Minimax {
+  rpc GetExpansion(ExpandRequest) returns (stream ExpandReply) {}
+  rpc GetEvaluation(EvaluateRequest) returns (EvaluateReply) {}
+  rpc RequestCancellation(CancelRequest) returns (CancelAck) {}
+}
+
+message Board {
+
+  message Snake {
+
+    message Coordinate {
+      uint32 x = 1;
+      uint32 y = 2;
+    }
+
+    uint32 id = 1;
+    Coordinate head = 2;
+    Coordinate tail = 3;
+    repeated Coordinate body = 4;
+    uint32 health = 5;
+  }
+
+  uint32 height = 1;
+  uint32 width = 2;
+  repeated uint32 grid = 3;
+  map<uint32, Snake> snakes = 4;
+  Snake me = 5;
+}
+
+message ExpandRequest {
+  Board board = 1;
+}
+
+message EvaluateRequest {
+  Board board = 1;
+}
+
+message CancelRequest {}
+
+message ExpandAck {}
+
+message EvaluateAck {}
+
+message CancelAck {}
+
+message ExpandReply {
+  Board board = 1;
+}
+
+message EvaluateReply {
+  uint32 score = 1;
+}
+
+message Ready {
+  string host = 1;
+  uint32 port = 2;
+}
