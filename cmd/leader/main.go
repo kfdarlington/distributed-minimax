@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"github.com/google/logger"
-	minimax "github.com/kristian-d/distributed-battlesnake/minimax/leader"
-	"github.com/kristian-d/distributed-battlesnake/minimax/pb"
+	"github.com/kristian-d/distributed-minimax/battlesnake"
+	minimax "github.com/kristian-d/distributed-minimax/engine/leader"
+	"github.com/kristian-d/distributed-minimax/engine/pb"
 	"google.golang.org/grpc"
 	"io/ioutil"
 )
@@ -21,7 +22,7 @@ func (addr *addrFlag) Set(value string) error {
 }
 
 func main() {
-	lgger := logger.Init("MainLogger", true, false, ioutil.Discard)
+	lgger := logger.Init("Main", true, false, ioutil.Discard)
 	/*var cfg *config.Config
 	env := os.Getenv("ENV")
 	switch env {
@@ -45,7 +46,8 @@ func main() {
 		}
 	}*/
 	var addresses addrFlag
-	flag.Var(&addresses, "addr", "addresses of follower servers to connect to")
+	flag.Var(&addresses, "addr", "addresses of worker servers to connect to")
+	var port = flag.Int("port", 8980, "port of the server")
 	flag.Parse()
 
 	pool := make([]*pb.MinimaxClient, 0)
@@ -58,17 +60,20 @@ func main() {
 		if err != nil {
 			lgger.Errorf("failed to connect addr=%s err=%v", addr, err)
 		} else {
-			lgger.Infof("connected to follower addr=%s", addr)
+			lgger.Infof("engine connected to worker addr=%s", addr)
 			defer conn.Close()
 			client := pb.NewMinimaxClient(conn)
 			pool = append(pool, &client)
 		}
 	}
 
-	leader, err := minimax.NewLeader(pool); if err != nil {
+	engine, err := minimax.NewLeader(pool); if err != nil {
 		lgger.Fatal(err)
 	}
-	lgger.Fatal(leader.Start())
+
+	srv := battlesnake.Create(engine, *port)
+	lgger.Infof("server listening on port %d\n", *port)
+	lgger.Fatal(srv.ListenAndServe())
 }
 
 
