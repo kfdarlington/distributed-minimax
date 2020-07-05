@@ -2,7 +2,7 @@ package follower
 
 import (
 	"context"
-	"github.com/kristian-d/distributed-battlesnake/minimax/pb"
+	"github.com/kristian-d/distributed-minimax/engine/pb"
 )
 
 type minimaxServer struct {

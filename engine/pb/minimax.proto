@@ -18,18 +18,15 @@ message Board {
       uint32 y = 2;
     }
 
-    uint32 id = 1;
-    Coordinate head = 2;
-    Coordinate tail = 3;
-    repeated Coordinate body = 4;
-    uint32 health = 5;
+    repeated Coordinate body = 1;
+    uint32 health = 2;
+    uint32 value = 3;
   }
 
   uint32 height = 1;
   uint32 width = 2;
   repeated uint32 grid = 3;
   map<uint32, Snake> snakes = 4;
-  Snake me = 5;
 }
 
 message ExpandRequest {

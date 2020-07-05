@@ -186,5 +186,5 @@ var _Minimax_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "minimax.proto",
+	Metadata: "engine.proto",
 }

@@ -2,13 +2,13 @@ package pools
 
 import (
 	"errors"
-	"github.com/kristian-d/distributed-battlesnake/minimax/pb"
+	"github.com/kristian-d/distributed-minimax/engine/pb"
 	"sync"
 )
 
 type follower struct {
 	id int
-	client *pb.MinimaxClient
+	Client *pb.MinimaxClient
 }
 
 type pool struct {
@@ -81,7 +81,7 @@ func createPool(cap int) (*pool, error) {
 }
 
 // search for follower id in active pool - if found, move from active to idle, else raise error
-func (p *Pools) markIdle(follower *follower) error {
+func (p *Pools) MarkIdle(follower *follower) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	err := p.active.remove(follower); if err != nil {
@@ -94,7 +94,7 @@ func (p *Pools) markIdle(follower *follower) error {
 }
 
 // search for follower id in idle pool - if found, move from idle to active, else raise error
-func (p *Pools) markActive(follower *follower) error {
+func (p *Pools) MarkActive(follower *follower) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	err := p.idle.remove(follower); if err != nil {
@@ -106,7 +106,7 @@ func (p *Pools) markActive(follower *follower) error {
 	return nil
 }
 
-func (p *Pools) activate() (*follower, error) {
+func (p *Pools) Activate() (*follower, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	follower := p.idle.pop(); if follower == nil {
