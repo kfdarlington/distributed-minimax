@@ -40,27 +40,27 @@ func NewRouter(engine *leader.Leader, logger *logger.Logger) http.Handler {
 		},
 		route{
 			"GET",
-			"/ping/",
+			"/ping",
 			handlerize(h.ping),
 		},
 		route{
-			"GET",
-			"/start/",
+			"POST",
+			"/start",
 			handlerize(h.start),
 		},
 		route{
-			"GET",
-			"/move/",
+			"POST",
+			"/move",
 			handlerize(h.move),
 		},
 		route{
-			"GET",
-			"/end/",
+			"POST",
+			"/end",
 			handlerize(h.end),
 		},
 	}
 
-	router := mux.NewRouter().StrictSlash(true)
+	router := mux.NewRouter().StrictSlash(false)
 	for _, route := range myRoutes {
 		router.
 			Methods(route.method).
