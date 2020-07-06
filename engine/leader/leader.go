@@ -6,9 +6,7 @@ import (
 	"github.com/kristian-d/distributed-minimax/battlesnake/game"
 	"github.com/kristian-d/distributed-minimax/engine/leader/pools"
 	"github.com/kristian-d/distributed-minimax/engine/pb"
-	"io"
 	"io/ioutil"
-	"log"
 	"math"
 	"time"
 )
@@ -18,58 +16,15 @@ type Leader struct {
 	pools *pools.Pools
 }
 
-func (l *Leader) Evaluate(board *pb.Board, deadline time.Duration) uint32 {
-	follower, err := l.pools.Activate()
-	if err != nil {
-		l.logger.Errorf("error retrieving and activating idle follower err=%v", err)
-		return 0
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond)
+func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
+	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond) // process the move for x ms, leaving (500 - x) ms for the network
 	defer cancel()
-	client := *follower.GetClient()
-	evaluateReply, err := client.GetEvaluation(ctx, &pb.EvaluateRequest{
-		Board: board,
-	})
-	if err != nil {
-		l.logger.Errorf("error requesting evaluation from follower client=%v err=%v", client, err)
-		return 0
-	}
-	return evaluateReply.GetScore()
-}
-
-func (l *Leader) Expand(board *pb.Board, deadline time.Duration, boardChan chan<- *pb.Board) {
-	defer close(boardChan)
-	follower, err := l.pools.Activate()
-	if err != nil {
-		l.logger.Errorf("error retrieving and activating idle follower err=%v", err)
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond)
-	defer cancel()
-	client := *follower.GetClient()
-	stream, err := client.GetExpansion(ctx, &pb.ExpandRequest{
-		Board: board,
-	})
-	if err != nil {
-		l.logger.Errorf("error requesting expansion from follower client=%v err=%v", client, err)
-	}
-	for {
-		expansion, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			l.logger.Errorf("error receiving expansion err=%v", err)
-			continue
-		}
-		boardChan <- expansion.GetBoard()
-		l.logger.Infof("received expansion expansion=%v", expansion)
-	}
-	if err := l.pools.MarkIdle(follower); err != nil {
-		l.logger.Errorf("error resetting follower to idle err=%v", err)
-	}
-}
-
-func (l *Leader) ComputeMove(board game.Board, deadline time.Duration) game.Move {
+	// absoluteDeadline := time.Now().UnixNano()/int64(time.Millisecond) + int64(deadline)
+	root := b.Protobuf()
+	// latestMove := game.UP // default move is some arbitrary direction for now
+	depth := 2
+	l.alphabeta(ctx, root, depth, math.Inf(-1), math.Inf(1), true)
+	return game.UP
 }
 
 func NewLeader(clients []*pb.MinimaxClient) (*Leader, error) {

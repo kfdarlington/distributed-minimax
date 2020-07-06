@@ -1,6 +1,7 @@
 package pools
 
 import (
+	"context"
 	"errors"
 	"github.com/kristian-d/distributed-minimax/engine/pb"
 	"sync"
@@ -14,7 +15,7 @@ type follower struct {
 type pool struct {
 	mu sync.Mutex
 	followers  []*follower // channel containing clients - number of clients in channel can be found with len(clients)
-	arrived chan bool      // a scheduler can listen to this channel to be notified of a new client being added
+	arrived chan *follower      // a scheduler can listen to this channel to be notified of a new client being added
 }
 
 type Pools struct {
@@ -36,9 +37,13 @@ func (p *pool) pop() *follower {
 		return nil
 	}
 	// choose client from pool that has been in the pool the longest
-	follower := p.followers[0]
-	p.followers = p.followers[1:]
-	return follower
+	f := p.followers[0]
+	// these next 3 lines are a temporary workaround because the original method of
+	// p.followers = p.followers[1:] decreases the original capacity by 1 and breaks things
+	newFollowers := make([]*follower, len(p.followers) - 1, cap(p.followers))
+	copy(newFollowers, p.followers[1:])
+	p.followers = newFollowers
+	return f
 }
 
 func (p *pool) push(f *follower) error {
@@ -48,11 +53,11 @@ func (p *pool) push(f *follower) error {
 	if count == cap(p.followers) {
 		return errors.New("entered follower into full pool")
 	}
-	p.followers = p.followers[:count + 1]
-	p.followers[count] = f
 	select {
-	case p.arrived <- true: // signal to a listener that a client was added
+	case p.arrived <- f: // signal to a listener that a client was added
 	default: // nobody was listening - do not block
+		p.followers = p.followers[:count + 1]
+		p.followers[count] = f
 	}
 	return nil
 }
@@ -80,7 +85,7 @@ func createPool(cap int) (*pool, error) {
 	}
 	return &pool{
 		followers: make([]*follower, 0, cap),
-		arrived: make(chan bool),
+		arrived: make(chan *follower),
 	}, nil
 }
 
@@ -110,13 +115,21 @@ func (p *Pools) MarkActive(follower *follower) error {
 	return nil
 }
 
-func (p *Pools) Activate() (*follower, error) {
+func (p *Pools) Activate(ctx context.Context) (*follower, error) {
+	// try to retrieve a follower right away
 	p.mu.Lock()
-	defer p.mu.Unlock()
-	follower := p.idle.pop(); if follower == nil {
-		return nil, nil
+	follower := p.idle.pop()
+	p.mu.Unlock()
+
+	// if no idle followers, listen for the next available follower until context expires
+	if follower == nil {
+		select {
+		case follower = <-p.idle.arrived:
+		case <-ctx.Done():
+			return nil, nil
+		}
 	}
-	err := p.active.push(follower); if err != nil {
+	if err := p.active.push(follower); err != nil {
 		return follower, err
 	}
 	return follower, nil
