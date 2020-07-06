@@ -8,7 +8,7 @@ import (
 
 type follower struct {
 	id int
-	Client *pb.MinimaxClient
+	client *pb.MinimaxClient
 }
 
 type pool struct {
@@ -21,6 +21,10 @@ type Pools struct {
 	mu sync.Mutex
 	idle *pool
 	active *pool
+}
+
+func (f *follower) GetClient() *pb.MinimaxClient {
+	return f.client
 }
 
 func (p *pool) pop() *follower {
