@@ -10,11 +10,19 @@ type minimaxServer struct {
 }
 
 func (server *minimaxServer) GetExpansion(req *pb.ExpandRequest, stream pb.Minimax_GetExpansionServer) error {
+	reply := &pb.ExpandReply{
+		Board: req.Board,
+	}
+	if err := stream.Send(reply); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (server *minimaxServer) GetEvaluation(ctx context.Context, req *pb.EvaluateRequest) (*pb.EvaluateReply, error) {
-	return nil, nil
+	return &pb.EvaluateReply{
+		Score: 500,
+	}, nil
 }
 
 func (server *minimaxServer) RequestCancellation(ctx context.Context, req *pb.CancelRequest) (*pb.CancelAck, error) {
