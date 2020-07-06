@@ -13,7 +13,7 @@ import (
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// MinimaxClient is the leader API for Minimax service.
+// MinimaxClient is the client API for Minimax service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MinimaxClient interface {
@@ -31,7 +31,7 @@ func NewMinimaxClient(cc grpc.ClientConnInterface) MinimaxClient {
 }
 
 func (c *minimaxClient) GetExpansion(ctx context.Context, in *ExpandRequest, opts ...grpc.CallOption) (Minimax_GetExpansionClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Minimax_serviceDesc.Streams[0], "/follower.Minimax/GetExpansion", opts...)
+	stream, err := c.cc.NewStream(ctx, &_Minimax_serviceDesc.Streams[0], "/pb.Minimax/GetExpansion", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (x *minimaxGetExpansionClient) Recv() (*ExpandReply, error) {
 
 func (c *minimaxClient) GetEvaluation(ctx context.Context, in *EvaluateRequest, opts ...grpc.CallOption) (*EvaluateReply, error) {
 	out := new(EvaluateReply)
-	err := c.cc.Invoke(ctx, "/follower.Minimax/GetEvaluation", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Minimax/GetEvaluation", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -73,14 +73,14 @@ func (c *minimaxClient) GetEvaluation(ctx context.Context, in *EvaluateRequest, 
 
 func (c *minimaxClient) RequestCancellation(ctx context.Context, in *CancelRequest, opts ...grpc.CallOption) (*CancelAck, error) {
 	out := new(CancelAck)
-	err := c.cc.Invoke(ctx, "/follower.Minimax/RequestCancellation", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/pb.Minimax/RequestCancellation", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MinimaxServer is the follower API for Minimax service.
+// MinimaxServer is the server API for Minimax service.
 // All implementations must embed UnimplementedMinimaxServer
 // for forward compatibility
 type MinimaxServer interface {
@@ -140,7 +140,7 @@ func _Minimax_GetEvaluation_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/follower.Minimax/GetEvaluation",
+		FullMethod: "/pb.Minimax/GetEvaluation",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MinimaxServer).GetEvaluation(ctx, req.(*EvaluateRequest))
@@ -158,7 +158,7 @@ func _Minimax_RequestCancellation_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/follower.Minimax/RequestCancellation",
+		FullMethod: "/pb.Minimax/RequestCancellation",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MinimaxServer).RequestCancellation(ctx, req.(*CancelRequest))
@@ -167,7 +167,7 @@ func _Minimax_RequestCancellation_Handler(srv interface{}, ctx context.Context, 
 }
 
 var _Minimax_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "follower.Minimax",
+	ServiceName: "pb.Minimax",
 	HandlerType: (*MinimaxServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -186,5 +186,5 @@ var _Minimax_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "engine.proto",
+	Metadata: "minimax.proto",
 }

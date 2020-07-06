@@ -23,10 +23,14 @@ message Board {
     uint32 value = 3;
   }
 
-  uint32 height = 1;
-  uint32 width = 2;
-  repeated uint32 grid = 3;
-  map<uint32, Snake> snakes = 4;
+  message Grid {
+    uint32 height = 1;
+    uint32 width = 2;
+    repeated uint32 values = 3 [packed=true];
+  }
+
+  Grid grid = 1;
+  map<uint32, Snake> snakes = 2;
 }
 
 message ExpandRequest {
