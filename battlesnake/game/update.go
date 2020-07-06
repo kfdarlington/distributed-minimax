@@ -10,8 +10,8 @@ type Update struct {
 	} `json:"game"`
 	Turn  int `json:"turn"`
 	Board struct {
-		Height int           `json:"height"`
-		Width  int           `json:"width"`
+		Height uint32        `json:"height"`
+		Width  uint32        `json:"width"`
 		Food   []Coordinate  `json:"food"`
 		RawSnakes []snakeRaw `json:"snakes"`
 	} `json:"board"`
@@ -27,7 +27,7 @@ func CreateGame(state Update) {
 		Board: Board{
 			Grid:   grid,
 			Snakes: snakesMap,
-			MoveCoordinate: MoveCoordinate{NONE, Coordinate{X:-1, Y:-1}},
+			MoveCoordinate: MoveCoordinate{NONE, (*snakesMap)[ME].Body[0]},
 		},
 		PreviousMaxDepth: 0,
 	}

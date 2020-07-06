@@ -3,67 +3,67 @@ package game
 import "fmt"
 
 type Coordinate struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X uint32 `json:"x"`
+	Y uint32 `json:"y"`
 }
 
 type snakeRaw struct {
 	Id     string       `json:"id"`
 	Name   string       `json:"name"`
-	Health int          `json:"health"`
+	Health uint32       `json:"health"`
 	Body   []Coordinate `json:"body"`
 	Shout  string       `json:"shout"`
 }
 
-type SnakeByValue map[GridValue]Snake
+type SnakeByValue map[uint32]*Snake
 
 type Snake struct {
 	Body   []Coordinate
-	Health int
+	Health uint32
 	Moved  bool
-	Value  GridValue
+	Value  uint32
 }
 
-func copySnake(snake Snake) Snake {
-	body := make([]Coordinate, len(snake.Body))
-	for i, location := range snake.Body {
+func (s *Snake) copy() *Snake {
+	body := make([]Coordinate, len(s.Body))
+	for i, location := range s.Body {
 		body[i] = location
 	}
-	return Snake{
-		Value:  snake.Value,
+	return &Snake{
+		Value:  s.Value,
 		Body:   body,
-		Health: snake.Health,
-		Moved:  snake.Moved,
+		Health: s.Health,
+		Moved:  s.Moved,
 	}
 }
 
-func copySnakeByValues(snakeByValues SnakeByValue) SnakeByValue {
+func (sbv *SnakeByValue) copy() *SnakeByValue {
 	newMap := make(SnakeByValue)
-	for k, v := range snakeByValues {
-		newMap[k] = copySnake(v)
+	for k, v := range *sbv {
+		newMap[k] = v.copy()
 	}
-	return newMap
+	return &newMap
 }
 
-func createSnakeMappings(rawSnakes []snakeRaw, myId string) map[GridValue]Snake {
-	snakesMapping := make(map[GridValue]Snake)
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) *SnakeByValue {
+	snakesMapping := make(SnakeByValue)
 	for i, rawSnake := range rawSnakes {
-		var value GridValue
+		var value uint32
 		if rawSnake.Id == myId {
 			value = ME
 		} else {
-			value = GridValue(i + 1) + ME // ensures that values are unique
+			value = uint32(i + 1) + ME // ensures that values are unique
 		}
-		snakesMapping[value] = Snake{
+		snakesMapping[value] = &Snake{
 			Health:         rawSnake.Health,
 			Body:           rawSnake.Body,
 			Value:          value,
 			Moved:          false,
 		}
 	}
-	return snakesMapping
+	return &snakesMapping
 }
 
-func PrintSnake(snake Snake) {
-	fmt.Printf("Value: %d\nHealth: %d\n Size: %d\n Moved: %d\n\n", snake.Value, snake.Health, len(snake.Body), snake.Moved)
+func (s *Snake) Print() {
+	fmt.Printf("{\n\tValue: %d\n\tHealth: %d\n\tSize: %d\n\tMoved: %d\n}\n", s.Value, s.Health, len(s.Body), s.Moved)
 }
