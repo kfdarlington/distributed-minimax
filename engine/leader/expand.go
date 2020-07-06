@@ -45,7 +45,7 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 			l.logger.Errorf("error receiving expansion err=%v", err)
 			break
 		}
-		boardChan <- expansion.GetBoard()
 		l.logger.Infof("received expansion expansion=%v", expansion)
+		boardChan <- expansion.GetBoard()
 	}
 }

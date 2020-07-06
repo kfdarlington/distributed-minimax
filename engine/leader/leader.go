@@ -22,8 +22,16 @@ func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 	// absoluteDeadline := time.Now().UnixNano()/int64(time.Millisecond) + int64(deadline)
 	root := b.Protobuf()
 	// latestMove := game.UP // default move is some arbitrary direction for now
-	depth := 2
-	l.alphabeta(ctx, root, depth, math.Inf(-1), math.Inf(1), true)
+	depth := 2 // TODO change
+	valueChan := make(chan float64)
+	go l.alphabeta(ctx, root, depth, math.Inf(-1), math.Inf(1), true, valueChan)
+	select {
+	case value, ok := <-valueChan:
+		l.logger.Infof("value=%f ok=%t", value, ok)
+		// TODO something
+	case <-ctx.Done():
+		// TODO something
+	}
 	return game.UP
 }
 
