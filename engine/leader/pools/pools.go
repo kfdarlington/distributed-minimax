@@ -3,12 +3,15 @@ package pools
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kristian-d/distributed-minimax/engine/pb"
+	"google.golang.org/grpc"
 	"sync"
 )
 
 type follower struct {
 	id int
+	addr string
 	client *pb.MinimaxClient
 }
 
@@ -79,14 +82,11 @@ func (p *pool) remove(f *follower) error {
 	return nil
 }
 
-func createPool(cap int) (*pool, error) {
-	if cap < 1 {
-		return nil, errors.New("cannot create pool with capacity less than 1")
-	}
+func createPool() *pool {
 	return &pool{
-		followers: make([]*follower, 0, cap),
+		followers: make([]*follower, 0),
 		arrived: make(chan *follower),
-	}, nil
+	}
 }
 
 // search for follower id in active pool - if found, move from active to idle, else raise error
@@ -135,31 +135,76 @@ func (p *Pools) Activate(ctx context.Context) (*follower, error) {
 	return follower, nil
 }
 
-// assumes that followers provided to function are initially idle
-func CreateFollowerPools(clients []*pb.MinimaxClient) (*Pools, error) {
-	// create followers from clients
-	followers := make([]*follower, len(clients))
-	for i, client := range clients {
-		followers[i] = &follower{
-			id: i,
-			client: client,
+func (p *Pools) AddFollower(addr string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	// check if a follower in the pools already exists with address
+	for _, follower := range p.idle.followers {
+		if follower.addr == addr {
+			return errors.New(fmt.Sprintf("follower already exists in idle pool addr=%s", addr))
 		}
 	}
-
-	// create idle pool
-	idlePool, err := createPool(len(followers))
+	for _, follower := range p.active.followers {
+		if follower.addr == addr {
+			return errors.New(fmt.Sprintf("follower already exists in active pool addr=%s", addr))
+		}
+	}
+	// attempt to connect with follower
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	opts = append(opts, grpc.WithBlock())
+	conn, err := grpc.Dial(addr, opts...)
 	if err != nil {
-		return nil, err
+		return errors.New(fmt.Sprintf("failed to connect addr=%s err=%v", addr, err))
+	} else {
+		// add follower to pools
+		client := pb.NewMinimaxClient(conn)
+		f := &follower{
+			id: len(p.idle.followers) + len(p.active.followers) + 1,
+			addr: addr,
+			client: &client,
+		}
+		// increase capacity of pools by 1
+		p.idle.mu.Lock()
+		newIdleFollowers := make([]*follower, len(p.idle.followers), cap(p.idle.followers) + 1)
+		copy(newIdleFollowers, p.idle.followers)
+		p.idle.followers = newIdleFollowers
+		p.idle.mu.Unlock()
+		p.active.mu.Lock()
+		newActiveFollowers := make([]*follower, len(p.active.followers), cap(p.active.followers) + 1)
+		copy(newActiveFollowers, p.active.followers)
+		p.active.followers = newActiveFollowers
+		p.active.mu.Unlock()
+		_ = p.idle.push(f)
 	}
-	for _, follower := range followers {
-		_ = idlePool.push(follower) // error would have been raised above
+	return nil
+}
+
+func (p *Pools) DestroyConnections() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.idle.mu.Lock()
+	for _, follower := range p.idle.followers {
+		follower.client.Close()
 	}
+	p.idle.mu.Unlock()
+	p.active.mu.Lock()
+	for _, follower := range p.active.followers {
+		follower.client.Close()
+	}
+	p.active.mu.Unlock()
+}
+
+// assumes that followers provided to function are initially idle
+func CreatePools() *Pools {
+	// create idle pool
+	idlePool := createPool()
 
 	// create active pool
-	activePool, _ := createPool(len(followers)) // error would have been raised above
+	activePool := createPool() // error would have been raised above
 
 	return &Pools{
 		idle: idlePool,
 		active: activePool,
-	}, nil
+	}
 }

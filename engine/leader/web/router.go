@@ -1,0 +1,62 @@
+package web
+
+import (
+	"github.com/google/logger"
+	"github.com/gorilla/mux"
+	"github.com/kristian-d/distributed-minimax/engine/leader/pools"
+	"net/http"
+)
+
+type route struct {
+	method string
+	endpoint string
+	handler http.HandlerFunc
+}
+
+type handler struct {
+	pools *pools.Pools
+	logger *logger.Logger
+}
+
+type routes []route
+
+func handlerize(fn func (http.ResponseWriter, *http.Request, interface{})) http.HandlerFunc {
+	return func (w http.ResponseWriter, r *http.Request) {
+		fn(w, r, nil)
+	}
+}
+
+func NewRouter(pools *pools.Pools, logger *logger.Logger) http.Handler {
+	var h = &handler{
+		pools: pools,
+		logger: logger,
+	}
+
+	var myRoutes = routes{
+		route{
+			"GET",
+			"/",
+			handlerize(h.index),
+		},
+		route{
+			"GET",
+			"/ping",
+			handlerize(h.ping),
+		},
+		route{
+			"PUT",
+			"/followers",
+			handlerize(h.followers),
+		},
+	}
+
+	router := mux.NewRouter().StrictSlash(false)
+	for _, route := range myRoutes {
+		router.
+			Methods(route.method).
+			Path(route.endpoint).
+			Handler(route.handler)
+	}
+
+	return router
+}

@@ -5,7 +5,7 @@ import (
 	"github.com/google/logger"
 	"github.com/kristian-d/distributed-minimax/battlesnake/game"
 	"github.com/kristian-d/distributed-minimax/engine/leader/pools"
-	"github.com/kristian-d/distributed-minimax/engine/pb"
+	"github.com/kristian-d/distributed-minimax/engine/leader/web"
 	"io/ioutil"
 	"math"
 	"time"
@@ -35,13 +35,15 @@ func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 	return game.UP
 }
 
-func NewLeader(clients []*pb.MinimaxClient) (*Leader, error) {
-	p, err := pools.CreateFollowerPools(clients)
-	if err != nil {
-		return nil, err
-	}
+func (l *Leader) CloseConnections() {
+	l.pools.DestroyConnections()
+}
+
+func CreateLeader() *Leader {
+	p := pools.CreatePools()
+	web.Create(p, 3001)
 	return &Leader{
 		logger: logger.Init("Leader", true, false, ioutil.Discard),
 		pools: p,
-	}, nil
+	}
 }

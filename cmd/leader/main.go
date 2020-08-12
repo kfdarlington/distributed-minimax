@@ -5,8 +5,6 @@ import (
 	"github.com/google/logger"
 	"github.com/kristian-d/distributed-minimax/battlesnake"
 	minimax "github.com/kristian-d/distributed-minimax/engine/leader"
-	"github.com/kristian-d/distributed-minimax/engine/pb"
-	"google.golang.org/grpc"
 	"io/ioutil"
 )
 
@@ -50,26 +48,8 @@ func main() {
 	var port = flag.Int("port", 3000, "port of the server")
 	flag.Parse()
 
-	pool := make([]*pb.MinimaxClient, 0)
-
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	opts = append(opts, grpc.WithBlock())
-	for _, addr := range addresses {
-		conn, err := grpc.Dial(addr, opts...)
-		if err != nil {
-			lgger.Errorf("failed to connect addr=%s err=%v", addr, err)
-		} else {
-			lgger.Infof("engine connected to worker addr=%s", addr)
-			defer conn.Close()
-			client := pb.NewMinimaxClient(conn)
-			pool = append(pool, &client)
-		}
-	}
-
-	engine, err := minimax.NewLeader(pool); if err != nil {
-		lgger.Fatal(err)
-	}
+	engine := minimax.CreateLeader()
+	defer engine.CloseConnections()
 
 	srv := battlesnake.Create(engine, *port)
 	lgger.Infof("server listening on port %d\n", *port)

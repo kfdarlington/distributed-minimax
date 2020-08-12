@@ -34,8 +34,8 @@ FROM scratch
 
 COPY --from=builder /dist/main /
 
-# export port
-EXPOSE 3000
+# expose ports
+EXPOSE 3000 3001
 
 # command to run when starting container
 CMD ["/main"]

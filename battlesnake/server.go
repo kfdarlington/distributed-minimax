@@ -12,10 +12,10 @@ import (
 	"github.com/kristian-d/distributed-minimax/battlesnake/game"
 )
 
-// Start starts the snake server using mux
+// Create starts the snake server using mux
 func Create(engine *leader.Leader, port int) *http.Server {
 	game.InitGames()
-	lgger := logger.Init("Web", true, false, ioutil.Discard)
+	lgger := logger.Init("BattleSnake Web", true, false, ioutil.Discard)
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
 		Handler:      web.NewRouter(engine, lgger),
