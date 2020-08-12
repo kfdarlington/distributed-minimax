@@ -47,7 +47,7 @@ func main() {
 	}*/
 	var addresses addrFlag
 	flag.Var(&addresses, "addr", "addresses of worker servers to connect to")
-	var port = flag.Int("port", 8980, "port of the server")
+	var port = flag.Int("port", 3000, "port of the server")
 	flag.Parse()
 
 	pool := make([]*pb.MinimaxClient, 0)
