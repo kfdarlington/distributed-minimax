@@ -48,12 +48,26 @@ func (h *handler) followers(w http.ResponseWriter, r *http.Request, data interfa
 	for _, addr := range followerConns.Addresses {
 		if err = h.pools.AddFollower(addr); err != nil {
 			errors = append(errors, err)
+			h.logger.Errorf("error when attempting connection at /followers err=%v", err)
 		} else {
 			confirmations = append(confirmations, addr)
 		}
 	}
 
-	if _, err = fmt.Fprintf(w, "successful: %v\nerrors: %v", confirmations, errors); err != nil {
-		h.logger.Errorf("error writing response from /followers err=%v", err)
+	res, err := json.Marshal(struct {
+		Successful  string `json:"successful"`
+		Errors string `json:"errors"`
+	}{
+		Successful: fmt.Sprintf("%v", confirmations),
+		Errors: fmt.Sprintf("%v", errors),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(res)
+	if err != nil {
+		h.logger.Errorf("error writing response from /follower err=%v", err)
 	}
 }

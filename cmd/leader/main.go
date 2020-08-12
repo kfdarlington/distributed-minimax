@@ -52,7 +52,7 @@ func main() {
 	defer engine.CloseConnections()
 
 	srv := battlesnake.Create(engine, *port)
-	lgger.Infof("server listening on port %d\n", *port)
+	lgger.Infof("battlesnake server listening on port %d\n", *port)
 	lgger.Fatal(srv.ListenAndServe())
 }
 

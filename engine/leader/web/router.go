@@ -44,7 +44,7 @@ func NewRouter(pools *pools.Pools, logger *logger.Logger) http.Handler {
 			handlerize(h.ping),
 		},
 		route{
-			"PUT",
+			"POST",
 			"/followers",
 			handlerize(h.followers),
 		},

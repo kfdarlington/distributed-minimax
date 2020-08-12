@@ -40,10 +40,15 @@ func (l *Leader) CloseConnections() {
 }
 
 func CreateLeader() *Leader {
+	lgger := logger.Init("Leader", true, false, ioutil.Discard)
 	p := pools.CreatePools()
-	web.Create(p, 3001)
+	server := web.Create(p, 3001)
+	go func() {
+		lgger.Fatal(server.ListenAndServe())
+	}()
+	lgger.Info("leader server listening on port 3001")
 	return &Leader{
-		logger: logger.Init("Leader", true, false, ioutil.Discard),
+		logger: lgger,
 		pools: p,
 	}
 }

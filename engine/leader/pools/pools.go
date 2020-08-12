@@ -7,6 +7,7 @@ import (
 	"github.com/kristian-d/distributed-minimax/engine/pb"
 	"google.golang.org/grpc"
 	"sync"
+	"time"
 )
 
 type follower struct {
@@ -154,7 +155,8 @@ func (p *Pools) AddFollower(addr string) error {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithBlock())
-	conn, err := grpc.Dial(addr, opts...)
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(1000)*time.Millisecond)
+	conn, err := grpc.DialContext(ctx, addr, opts...)
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to connect addr=%s err=%v", addr, err))
 	} else {
