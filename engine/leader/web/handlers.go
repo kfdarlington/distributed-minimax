@@ -35,7 +35,7 @@ func (h *handler) ping(w http.ResponseWriter, r *http.Request, data interface{})
 	}
 }
 
-func (h *handler) followers(w http.ResponseWriter, r *http.Request, data interface{}) {
+func (h *handler) postFollowers(w http.ResponseWriter, r *http.Request, data interface{}) {
 	followerConns, err := unmarshal(r)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
@@ -68,6 +68,24 @@ func (h *handler) followers(w http.ResponseWriter, r *http.Request, data interfa
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(res)
 	if err != nil {
-		h.logger.Errorf("error writing response from /follower err=%v", err)
+		h.logger.Errorf("error writing response to POST from /follower err=%v", err)
+	}
+}
+
+func (h *handler) getFollowers(w http.ResponseWriter, r *http.Request, data interface{}) {
+	addresses := h.pools.GetFollowerAddresses()
+	res, err := json.Marshal(struct {
+		Addresses  string `json:"addresses"`
+	}{
+		Addresses: fmt.Sprintf("%v", addresses),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(res)
+	if err != nil {
+		h.logger.Errorf("error writing response to GET from /follower err=%v", err)
 	}
 }

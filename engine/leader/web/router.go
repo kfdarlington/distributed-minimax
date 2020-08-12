@@ -46,7 +46,12 @@ func NewRouter(pools *pools.Pools, logger *logger.Logger) http.Handler {
 		route{
 			"POST",
 			"/followers",
-			handlerize(h.followers),
+			handlerize(h.postFollowers),
+		},
+		route{
+			"GET",
+			"/followers",
+			handlerize(h.getFollowers),
 		},
 	}
 

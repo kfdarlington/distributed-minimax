@@ -184,6 +184,20 @@ func (p *Pools) AddFollower(addr string) error {
 	return nil
 }
 
+func (p *Pools) GetFollowerAddresses() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	addresses := make([]string, len(p.idle.followers) + len(p.active.followers))
+	// check if a follower in the pools already exists with address
+	for i, follower := range p.idle.followers {
+		addresses[i] = follower.addr
+	}
+	for i, follower := range p.active.followers {
+		addresses[i + len(p.idle.followers)] = follower.addr
+	}
+	return addresses
+}
+
 func (p *Pools) DestroyConnections() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
