@@ -13,6 +13,7 @@ type follower struct {
 	id int
 	addr string
 	client *pb.MinimaxClient
+	conn *grpc.ClientConn
 }
 
 type pool struct {
@@ -163,6 +164,7 @@ func (p *Pools) AddFollower(addr string) error {
 			id: len(p.idle.followers) + len(p.active.followers) + 1,
 			addr: addr,
 			client: &client,
+			conn: conn,
 		}
 		// increase capacity of pools by 1
 		p.idle.mu.Lock()
@@ -185,12 +187,12 @@ func (p *Pools) DestroyConnections() {
 	defer p.mu.Unlock()
 	p.idle.mu.Lock()
 	for _, follower := range p.idle.followers {
-		follower.client.Close()
+		_ = follower.conn.Close()
 	}
 	p.idle.mu.Unlock()
 	p.active.mu.Lock()
 	for _, follower := range p.active.followers {
-		follower.client.Close()
+		_ = follower.conn.Close()
 	}
 	p.active.mu.Unlock()
 }
