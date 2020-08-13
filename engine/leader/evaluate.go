@@ -7,17 +7,13 @@ import (
 
 func (l *Leader) evaluate(ctx context.Context, board *pb.Board) float32 {
 	// find an available follower
-	follower, err := l.pools.Activate(ctx)
-	if err != nil {
-		l.logger.Errorf("error retrieving and activating idle follower err=%v", err)
-		return 0
-	}
+	follower := l.pool.Activate(ctx)
 	if follower == nil {
 		l.logger.Info("follower was not made available before context expired")
 		return 0
 	}
 	defer func() {
-		if err := l.pools.MarkIdle(follower); err != nil {
+		if err := l.pool.MarkAsIdle(follower); err != nil {
 			l.logger.Errorf("error resetting follower to idle follower=%v err=%v", *follower, err)
 		}
 	}()

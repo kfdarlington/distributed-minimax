@@ -10,17 +10,13 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 	defer close(boardChan)
 
 	// find an available follower
-	follower, err := l.pools.Activate(ctx)
-	if err != nil {
-		l.logger.Errorf("error retrieving and activating idle follower err=%v", err)
-		return
-	}
+	follower := l.pool.Activate(ctx)
 	if follower == nil {
 		l.logger.Info("follower was not made available before context expired")
 		return
 	}
 	defer func() {
-		if err := l.pools.MarkIdle(follower); err != nil {
+		if err := l.pool.MarkAsIdle(follower); err != nil {
 			l.logger.Errorf("error resetting follower to idle follower=%v err=%v", *follower, err)
 		}
 	}()

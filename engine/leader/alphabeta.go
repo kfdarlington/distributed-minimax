@@ -7,6 +7,87 @@ import (
 	"sync"
 )
 
+// this function begins the alpha-beta pruning algorithm at the root of the minimax tree; it returns a move instead of
+// a value based on an evaluation (the move from the root of the tree is all that we care about)
+func (l *Leader) startalphabeta(ctx context.Context, b *pb.Board, depth int) string {
+	if depth == 0 {
+		return "up"
+	}
+
+	// instantiate all that is needed for communication between go functions
+	boardChan := make(chan *pb.Board)
+	var mu sync.Mutex
+	expectedValueCount := 0
+	moveChan := make(chan struct{
+		move string
+		evaluation float64
+	})
+
+	// ensures that all child processes of this alpha-beta call will exit if their branch is pruned or the function is otherwise done
+	ctx2, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	evaluation := math.Inf(-1) // negative infinity
+	alpha := math.Inf(-1) // negative infinity
+	beta := math.Inf(1) // positive infinity
+	bestMove := "up" // arbitrary move
+
+	go l.expand(ctx2, b, boardChan)
+	for {
+		select {
+		case newBoard, ok := <-boardChan:
+			if !ok {
+				boardChan = nil // disables this case in select
+			} else {
+				mu.Lock()
+				expectedValueCount++
+				go func(board *pb.Board) {
+					valueChan := make(chan float64)
+					go l.alphabeta(ctx2, board, depth-1, alpha, beta, false, valueChan)
+					select {
+					case evaluation := <-valueChan:
+						// TODO: write function to get the move that created board from b ----> move := DetermineMove(b, board)
+						move := "up"
+						moveChan <- struct{
+							move string
+							evaluation float64
+						}{
+							move,
+							evaluation,
+						}
+					case <-ctx2.Done():
+					}
+				}(newBoard)
+				mu.Unlock()
+			}
+		case newMove := <-moveChan:
+			mu.Lock()
+			expectedValueCount--
+			evaluation = math.Max(evaluation, newMove.evaluation)
+			l.logger.Infof("value updated value=%f", evaluation)
+			if evaluation == newMove.evaluation { // if value was updated, updated the move too
+				bestMove = newMove.move
+				l.logger.Infof("move updated move=%s", bestMove)
+			}
+			alpha = math.Max(alpha, evaluation)
+			l.logger.Infof("alpha updated alpha=%f", alpha)
+			if beta <= alpha { // prune any sibling branches that have not run or are currently running -- "defer cancel()" ensures they will finish due to their context
+				l.logger.Infof("pruning value=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+				mu.Unlock()
+				return bestMove
+			} else if expectedValueCount == 0 && boardChan == nil { // we are not expecting and will never expect more values
+				l.logger.Infof("exhausted branches, returning move=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+				mu.Unlock()
+				return bestMove
+			} else { // continue handling values
+				mu.Unlock()
+			}
+		case <-ctx2.Done():
+			return bestMove
+		}
+	}
+}
+
 func (l *Leader) alphabeta(ctx context.Context, b *pb.Board, depth int, alpha float64, beta float64, maximizingPlayer bool, resultChan chan float64) {
 	if depth == 0 {
 		resultChan <- float64(l.evaluate(ctx, b))

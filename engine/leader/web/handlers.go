@@ -56,10 +56,10 @@ func (h *handler) postFollowers(w http.ResponseWriter, r *http.Request, data int
 
 	res, err := json.Marshal(struct {
 		Successful  []string `json:"successful"`
-		Errors []error `json:"errors"`
+		Errors string `json:"errors"`
 	}{
 		Successful: confirmations,
-		Errors: errors,
+		Errors: fmt.Sprintf("%v", errors),
 	})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
