@@ -14,7 +14,7 @@ type route struct {
 }
 
 type handler struct {
-	pools *pools.Pools
+	pools *pools.Pool
 	logger *logger.Logger
 }
 
@@ -26,7 +26,7 @@ func handlerize(fn func (http.ResponseWriter, *http.Request, interface{})) http.
 	}
 }
 
-func NewRouter(pools *pools.Pools, logger *logger.Logger) http.Handler {
+func NewRouter(pools *pools.Pool, logger *logger.Logger) http.Handler {
 	var h = &handler{
 		pools: pools,
 		logger: logger,
