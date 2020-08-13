@@ -55,11 +55,11 @@ func (h *handler) postFollowers(w http.ResponseWriter, r *http.Request, data int
 	}
 
 	res, err := json.Marshal(struct {
-		Successful  string `json:"successful"`
-		Errors string `json:"errors"`
+		Successful  []string `json:"successful"`
+		Errors []error `json:"errors"`
 	}{
-		Successful: fmt.Sprintf("%v", confirmations),
-		Errors: fmt.Sprintf("%v", errors),
+		Successful: confirmations,
+		Errors: errors,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -75,9 +75,9 @@ func (h *handler) postFollowers(w http.ResponseWriter, r *http.Request, data int
 func (h *handler) getFollowers(w http.ResponseWriter, r *http.Request, data interface{}) {
 	addresses := h.pools.GetFollowerAddresses()
 	res, err := json.Marshal(struct {
-		Addresses  string `json:"addresses"`
+		Addresses []string `json:"addresses"`
 	}{
-		Addresses: fmt.Sprintf("%v", addresses),
+		Addresses: addresses,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), 500)
