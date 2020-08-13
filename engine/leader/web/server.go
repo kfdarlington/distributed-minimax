@@ -11,7 +11,7 @@ import (
 )
 
 // Create starts the server using mux
-func Create(pools *pools.Pools, port int) *http.Server {
+func Create(pools *pools.Pool, port int) *http.Server {
 	lgger := logger.Init("Engine Leader Web", true, false, ioutil.Discard)
 	var host string
 	if os.Getenv("ENV") == "dev" {
