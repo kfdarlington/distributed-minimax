@@ -10,17 +10,13 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 	defer close(boardChan)
 
 	// find an available follower
-	follower, err := l.pools.Activate(ctx)
-	if err != nil {
-		l.logger.Errorf("error retrieving and activating idle follower err=%v", err)
-		return
-	}
+	follower := l.pool.Activate(ctx)
 	if follower == nil {
 		l.logger.Info("follower was not made available before context expired")
 		return
 	}
 	defer func() {
-		if err := l.pools.MarkIdle(follower); err != nil {
+		if err := l.pool.MarkAsIdle(follower); err != nil {
 			l.logger.Errorf("error resetting follower to idle follower=%v err=%v", *follower, err)
 		}
 	}()
@@ -32,18 +28,18 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 	})
 	if err != nil {
 		l.logger.Errorf("error requesting expansion from follower client=%v err=%v", client, err)
+		return
 	}
 
 	// funnel streamed responses into the board channel
 	for {
 		expansion, err := stream.Recv()
 		if err == io.EOF {
-			l.logger.Info("stream reached EOF")
-			break
-		}
-		if err != nil {
-			l.logger.Errorf("error receiving expansion err=%v", err)
-			break
+			l.logger.Info("stream reached EOF, exiting")
+			return
+		} else if err != nil {
+			l.logger.Errorf("unknown error receiving expansion, exiting err=%v", err)
+			return
 		}
 		l.logger.Infof("received expansion expansion=%v", expansion)
 		boardChan <- expansion.GetBoard()

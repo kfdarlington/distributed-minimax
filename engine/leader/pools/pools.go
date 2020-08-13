@@ -3,163 +3,104 @@ package pools
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kristian-d/distributed-minimax/engine/pb"
+	"google.golang.org/grpc"
 	"sync"
+	"time"
 )
 
 type follower struct {
 	id int
+	addr string
 	client *pb.MinimaxClient
+	conn *grpc.ClientConn
 }
 
-type pool struct {
+type Pool struct {
 	mu sync.Mutex
-	followers  []*follower // channel containing clients - number of clients in channel can be found with len(clients)
-	arrived chan *follower      // a scheduler can listen to this channel to be notified of a new client being added
-}
-
-type Pools struct {
-	mu sync.Mutex
-	idle *pool
-	active *pool
+	idleChan chan *follower
+	followers []*follower
 }
 
 func (f *follower) GetClient() *pb.MinimaxClient {
 	return f.client
 }
 
-func (p *pool) pop() *follower {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	count := len(p.followers)
-	if count < 1 {
-		// signifies empty pool
+// search for follower id in active pool - if found, move from active to idle, else raise error
+func (p *Pool) MarkAsIdle(follower *follower) error {
+	select {
+	case p.idleChan <- follower:
+		return nil
+	default:
+		return errors.New("idle channel was full when attempting to push follower onto it")
+	}
+}
+
+func (p *Pool) Activate(ctx context.Context) *follower {
+	select {
+	case follower := <-p.idleChan:
+		return follower
+	case <-ctx.Done():
 		return nil
 	}
-	// choose client from pool that has been in the pool the longest
-	f := p.followers[0]
-	// these next 3 lines are a temporary workaround because the original method of
-	// p.followers = p.followers[1:] decreases the original capacity by 1 and breaks things
-	newFollowers := make([]*follower, len(p.followers) - 1, cap(p.followers))
-	copy(newFollowers, p.followers[1:])
-	p.followers = newFollowers
-	return f
 }
 
-func (p *pool) push(f *follower) error {
+func (p *Pool) AddFollower(addr string) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	count := len(p.followers)
-	if count == cap(p.followers) {
-		return errors.New("entered follower into full pool")
+	// check if a follower in the pools already exists with address
+	for _, follower := range p.followers {
+		if follower.addr == addr {
+			return errors.New(fmt.Sprintf("follower already exists in idle pool addr=%s", addr))
+		}
 	}
-	select {
-	case p.arrived <- f: // signal to a listener that a client was added
-	default: // nobody was listening - do not block
-		p.followers = p.followers[:count + 1]
-		p.followers[count] = f
+	// attempt to connect with follower
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	opts = append(opts, grpc.WithBlock())
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(1000)*time.Millisecond)
+	conn, err := grpc.DialContext(ctx, addr, opts...)
+	if err != nil {
+		return errors.New(fmt.Sprintf("failed to connect addr=%s err=%v", addr, err))
+	} else {
+		// add follower to pools
+		client := pb.NewMinimaxClient(conn)
+		f := &follower{
+			id: len(p.followers),
+			addr: addr,
+			client: &client,
+			conn: conn,
+		}
+		// increment size of idle chan
+		p.followers = append(p.followers, f)
+		p.idleChan <- f
 	}
 	return nil
 }
 
-func (p *pool) remove(f *follower) error {
+func (p *Pool) GetFollowerAddresses() []string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	idx := -1
+	addresses := make([]string, len(p.followers))
 	for i, follower := range p.followers {
-		if follower.id == f.id {
-			idx = i
-			break
-		}
+		addresses[i] = follower.addr
 	}
-	if idx == -1 {
-		return errors.New("follower was not in pool")
-	}
-	p.followers = append(p.followers[:idx], p.followers[idx + 1:]...)
-	return nil
+	return addresses
 }
 
-func createPool(cap int) (*pool, error) {
-	if cap < 1 {
-		return nil, errors.New("cannot create pool with capacity less than 1")
-	}
-	return &pool{
-		followers: make([]*follower, 0, cap),
-		arrived: make(chan *follower),
-	}, nil
-}
-
-// search for follower id in active pool - if found, move from active to idle, else raise error
-func (p *Pools) MarkIdle(follower *follower) error {
+func (p *Pool) DestroyConnections() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	err := p.active.remove(follower); if err != nil {
-		return err
+	for _, follower := range p.followers {
+		_ = follower.conn.Close()
 	}
-	err = p.idle.push(follower); if err != nil {
-		return err
-	}
-	return nil
-}
-
-// search for follower id in idle pool - if found, move from idle to active, else raise error
-func (p *Pools) MarkActive(follower *follower) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	err := p.idle.remove(follower); if err != nil {
-		return err
-	}
-	err = p.active.push(follower); if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *Pools) Activate(ctx context.Context) (*follower, error) {
-	// try to retrieve a follower right away
-	p.mu.Lock()
-	follower := p.idle.pop()
-	p.mu.Unlock()
-
-	// if no idle followers, listen for the next available follower until context expires
-	if follower == nil {
-		select {
-		case follower = <-p.idle.arrived:
-		case <-ctx.Done():
-			return nil, nil
-		}
-	}
-	if err := p.active.push(follower); err != nil {
-		return follower, err
-	}
-	return follower, nil
 }
 
 // assumes that followers provided to function are initially idle
-func CreateFollowerPools(clients []*pb.MinimaxClient) (*Pools, error) {
-	// create followers from clients
-	followers := make([]*follower, len(clients))
-	for i, client := range clients {
-		followers[i] = &follower{
-			id: i,
-			client: client,
-		}
+func CreatePool() *Pool {
+	return &Pool{
+		idleChan: make(chan *follower, 1000), // TODO: figure out how to grow the idleChan -- for now, it is limited at 1000 followers
+		followers: make([]*follower, 0),
 	}
-
-	// create idle pool
-	idlePool, err := createPool(len(followers))
-	if err != nil {
-		return nil, err
-	}
-	for _, follower := range followers {
-		_ = idlePool.push(follower) // error would have been raised above
-	}
-
-	// create active pool
-	activePool, _ := createPool(len(followers)) // error would have been raised above
-
-	return &Pools{
-		idle: idlePool,
-		active: activePool,
-	}, nil
 }

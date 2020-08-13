@@ -14,11 +14,10 @@ import (
 func main() {
 	lgger := logger.Init("MainFollowerLogger", true, false, ioutil.Discard)
 
-	var host = flag.String("host", "localhost", "host address of the follower")
-	var port = flag.Int("port", 8980, "port of the follower")
+	var port = flag.Int("port", 3000, "port of the follower")
 	flag.Parse()
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
 		lgger.Fatalf("failed to listen port=%d err=%v", *port, err)
 	}
