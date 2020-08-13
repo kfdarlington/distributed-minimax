@@ -28,18 +28,18 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 	})
 	if err != nil {
 		l.logger.Errorf("error requesting expansion from follower client=%v err=%v", client, err)
+		return
 	}
 
 	// funnel streamed responses into the board channel
 	for {
 		expansion, err := stream.Recv()
 		if err == io.EOF {
-			l.logger.Info("stream reached EOF")
-			break
-		}
-		if err != nil {
-			l.logger.Errorf("error receiving expansion err=%v", err)
-			break
+			l.logger.Info("stream reached EOF, exiting")
+			return
+		} else if err != nil {
+			l.logger.Errorf("unknown error receiving expansion, exiting err=%v", err)
+			return
 		}
 		l.logger.Infof("received expansion expansion=%v", expansion)
 		boardChan <- expansion.GetBoard()
