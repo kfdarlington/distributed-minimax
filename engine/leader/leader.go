@@ -15,11 +15,12 @@ type Leader struct {
 	pool *pools.Pool
 }
 
-func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) string {
+func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond) // process the move for x ms, leaving (500 - x) ms for the network (for battlesnake)
 	defer cancel()
 	// absoluteDeadline := time.Now().UnixNano()/int64(time.Millisecond) + int64(deadline)
 	root := b.Protobuf()
+
 	depth := 2 // TODO change
 	move := l.startalphabeta(ctx, root, depth)
 	return move
