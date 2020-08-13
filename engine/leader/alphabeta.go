@@ -68,15 +68,15 @@ func (l *Leader) startalphabeta(ctx context.Context, b *pb.Board, depth int) gam
 					bestMove = newMove.move
 					l.logger.Infof("move updated move=%s", bestMove)
 				}
-				alpha = math.Max(alpha, evaluation)
-				l.logger.Infof("alpha updated alpha=%f", alpha)
-				if beta <= alpha { // prune any sibling branches that have not run or are currently running -- "defer cancel()" ensures they will finish due to their context
-					l.logger.Infof("pruning value=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
-					return bestMove
-				} else if expectedValueCount == 0 && boardChan == nil { // we are not expecting and will never expect more values
-					l.logger.Infof("exhausted branches, returning move=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
-					return bestMove
-				}
+			}
+			alpha = math.Max(alpha, evaluation)
+			l.logger.Infof("alpha updated alpha=%f", alpha)
+			if beta <= alpha { // prune any sibling branches that have not run or are currently running -- "defer cancel()" ensures they will finish due to their context
+				l.logger.Infof("pruning value=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+				return bestMove
+			} else if expectedValueCount == 0 && boardChan == nil { // we are not expecting and will never expect more values
+				l.logger.Infof("exhausted branches, returning move=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+				return bestMove
 			}
 		case <-ctx2.Done():
 			return bestMove
