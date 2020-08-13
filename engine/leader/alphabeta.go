@@ -39,42 +39,44 @@ func (l *Leader) startalphabeta(ctx context.Context, b *pb.Board, depth int) gam
 				boardChan = nil // disables this case in select
 			} else {
 				expectedValueCount++
-				go func(board *pb.Board) {
-					valueChan := make(chan float64)
-					go l.alphabeta(ctx2, board, depth-1, alpha, beta, false, valueChan)
+				valueChan := make(chan float64)
+				go l.alphabeta(ctx2, newBoard, depth-1, alpha, beta, false, valueChan)
+				go func(board *pb.Board, evaluationChan chan float64) {
 					select {
-					case evaluation := <-valueChan:
-						if move, err := game.GetOriginatingMove(b, board); err != nil {
+					case evaluation := <-evaluationChan:
+						move, err := game.GetMyOriginatingMove(b, board)
+						if err != nil {
 							l.logger.Errorf("error getting originating move err=%v", err)
-						} else {
-							moveChan <- struct{
-								move game.Move
-								evaluation float64
-							}{
-								move,
-								evaluation,
-							}
+						}
+						moveChan <- struct{
+							move game.Move
+							evaluation float64
+						}{
+							move,
+							evaluation,
 						}
 					case <-ctx2.Done():
 					}
-				}(newBoard)
+				}(newBoard, valueChan)
 			}
 		case newMove := <-moveChan:
 			expectedValueCount--
-			evaluation = math.Max(evaluation, newMove.evaluation)
-			l.logger.Infof("value updated value=%f", evaluation)
-			if evaluation == newMove.evaluation { // if value was updated, updated the move too
-				bestMove = newMove.move
-				l.logger.Infof("move updated move=%s", bestMove)
-			}
-			alpha = math.Max(alpha, evaluation)
-			l.logger.Infof("alpha updated alpha=%f", alpha)
-			if beta <= alpha { // prune any sibling branches that have not run or are currently running -- "defer cancel()" ensures they will finish due to their context
-				l.logger.Infof("pruning value=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
-				return bestMove
-			} else if expectedValueCount == 0 && boardChan == nil { // we are not expecting and will never expect more values
-				l.logger.Infof("exhausted branches, returning move=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
-				return bestMove
+			if newMove.move != game.NONE {
+				evaluation = math.Max(evaluation, newMove.evaluation)
+				l.logger.Infof("value updated value=%f", evaluation)
+				if evaluation == newMove.evaluation { // if value was updated, updated the move too
+					bestMove = newMove.move
+					l.logger.Infof("move updated move=%s", bestMove)
+				}
+				alpha = math.Max(alpha, evaluation)
+				l.logger.Infof("alpha updated alpha=%f", alpha)
+				if beta <= alpha { // prune any sibling branches that have not run or are currently running -- "defer cancel()" ensures they will finish due to their context
+					l.logger.Infof("pruning value=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+					return bestMove
+				} else if expectedValueCount == 0 && boardChan == nil { // we are not expecting and will never expect more values
+					l.logger.Infof("exhausted branches, returning move=%s depth=%d alpha=%f beta=%f maximizingPlayer=true", bestMove, depth, alpha, beta)
+					return bestMove
+				}
 			}
 		case <-ctx2.Done():
 			return bestMove

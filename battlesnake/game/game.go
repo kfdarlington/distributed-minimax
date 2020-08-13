@@ -69,7 +69,7 @@ func (b *Board) Protobuf() *pb.Board {
 	}
 }
 
-func GetOriginatingMove(fromBoard *pb.Board, toBoard *pb.Board) (Move, error) {
+func GetMyOriginatingMove(fromBoard *pb.Board, toBoard *pb.Board) (Move, error) {
 	var fromHeadCoord *pb.Board_Snake_Coordinate
 	if fromSnakes, ok := fromBoard.GetSnakes()[ME]; !ok {
 		return NONE, errors.New("we do not exist in snake mapping from originating board")
