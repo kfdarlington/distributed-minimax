@@ -24,48 +24,30 @@ const (
 	DEFAULT_MOVE Move = "up"
 )
 
-type MoveCoordinate struct {
-	Move Move
-	Coordinate Coordinate
-}
-
 type Board struct {
-	Grid           *Grid
-	Snakes         *SnakeByValue
-	MoveCoordinate MoveCoordinate // the move and coordinate pair that generated this board
+	Grid   *Grid
+	Snakes SnakeByValue
 }
 
 func (b *Board) Copy() Board {
 	return Board{
-		Grid: b.Grid.Copy(),
+		Grid: b.Grid.copy(),
 		Snakes: b.Snakes.copy(),
-		MoveCoordinate: b.MoveCoordinate,
 	}
 }
 
-func (b *Board) Protobuf() *pb.Board {
-	snakes := make(map[uint32]*pb.Board_Snake)
-	for k, v := range *b.Snakes {
-		body := make([]*pb.Board_Snake_Coordinate, len(v.Body), len(v.Body))
-		for i, coordinate := range v.Body {
-			body[i] = &pb.Board_Snake_Coordinate{
-				X: coordinate.X,
-				Y: coordinate.Y,
-			}
-		}
-		snakes[k] = &pb.Board_Snake{
-			Body: body,
-			Health: v.Health,
-			Value: v.Value,
-		}
-	}
+func (b *Board) ToProtobuf(terminalState bool) *pb.Board {
 	return &pb.Board{
-		Grid: &pb.Board_Grid{
-			Height: b.Grid.GetHeight(),
-			Width: b.Grid.GetWidth(),
-			Values: b.Grid.GetValues(),
-		},
-		Snakes: snakes,
+		Grid: b.Grid.ToProtobuf(),
+		Snakes: b.Snakes.ToProtobuf(),
+		TerminalState: terminalState,
+	}
+}
+
+func BoardFromProtobuf(pb *pb.Board) Board {
+	return Board{
+		Grid: GridFromProtobuf(pb.GetGrid()),
+		Snakes: SnakesFromProtobuf(pb.GetSnakes()),
 	}
 }
 

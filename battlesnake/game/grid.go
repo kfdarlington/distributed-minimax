@@ -1,6 +1,9 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/kristian-d/distributed-minimax/engine/pb"
+)
 
 const (
 	EMPTY uint32 = iota
@@ -34,7 +37,7 @@ func (g *Grid) SetValue(y uint32, x uint32, value uint32) {
 	g.values[y*g.width + x] = value
 }
 
-func createGrid(state Update, snakesMap *SnakeByValue) *Grid { // currently generates a new grid every update for simplicity
+func createGrid(state Update, snakesMap SnakeByValue) *Grid { // currently generates a new grid every update for simplicity
 	height   := state.Board.Height
 	width    := state.Board.Width
 	grid     := Grid{
@@ -42,7 +45,7 @@ func createGrid(state Update, snakesMap *SnakeByValue) *Grid { // currently gene
 		width: width,
 		values: make([]uint32, height*width, height*width),
 	}
-	for _, snake := range *snakesMap {
+	for _, snake := range snakesMap {
 		for _, coordinate := range snake.Body {
 			grid.SetValue(coordinate.Y, coordinate.X, snake.Value)
 		}
@@ -53,7 +56,7 @@ func createGrid(state Update, snakesMap *SnakeByValue) *Grid { // currently gene
 	return &grid
 }
 
-func (g *Grid) Copy() *Grid {
+func (g *Grid) copy() *Grid {
 	gridCopy  := Grid{
 		height: g.height,
 		width: g.width,
@@ -71,5 +74,21 @@ func (g *Grid) Print() {
 		start = i*g.width
 		end = start + g.width
 		fmt.Println(g.values[start:end])
+	}
+}
+
+func GridFromProtobuf(grid *pb.Board_Grid) *Grid {
+	return &Grid{
+		height: grid.GetHeight(),
+		width: grid.GetWidth(),
+		values: grid.GetValues(),
+	}
+}
+
+func (g *Grid) ToProtobuf() *pb.Board_Grid {
+	return &pb.Board_Grid{
+		Height: g.GetHeight(),
+		Width: g.GetWidth(),
+		Values: g.GetValues(),
 	}
 }

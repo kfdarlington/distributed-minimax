@@ -27,7 +27,6 @@ func CreateGame(state Update) {
 		Board: Board{
 			Grid:   grid,
 			Snakes: snakesMap,
-			MoveCoordinate: MoveCoordinate{NONE, (*snakesMap)[ME].Body[0]},
 		},
 		PreviousMaxDepth: 0,
 	}

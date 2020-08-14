@@ -1,6 +1,9 @@
 package game
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/kristian-d/distributed-minimax/engine/pb"
+)
 
 type Coordinate struct {
 	X uint32 `json:"x"`
@@ -37,15 +40,15 @@ func (s *Snake) copy() *Snake {
 	}
 }
 
-func (sbv *SnakeByValue) copy() *SnakeByValue {
+func (sbv SnakeByValue) copy() SnakeByValue {
 	newMap := make(SnakeByValue)
-	for k, v := range *sbv {
+	for k, v := range sbv {
 		newMap[k] = v.copy()
 	}
-	return &newMap
+	return newMap
 }
 
-func createSnakeMappings(rawSnakes []snakeRaw, myId string) *SnakeByValue {
+func createSnakeMappings(rawSnakes []snakeRaw, myId string) SnakeByValue {
 	snakesMapping := make(SnakeByValue)
 	for i, rawSnake := range rawSnakes {
 		var value uint32
@@ -61,7 +64,54 @@ func createSnakeMappings(rawSnakes []snakeRaw, myId string) *SnakeByValue {
 			Moved:          false,
 		}
 	}
-	return &snakesMapping
+	return snakesMapping
+}
+
+func (sbv SnakeByValue) ToProtobuf() map[uint32]*pb.Board_Snake {
+	snakes := make(map[uint32]*pb.Board_Snake)
+	for k, v := range sbv {
+		snakes[k] = v.ToProtobuf()
+	}
+	return snakes
+}
+
+func (s *Snake) ToProtobuf() *pb.Board_Snake {
+	body := make([]*pb.Board_Snake_Coordinate, len(s.Body), len(s.Body))
+	for i, coordinate := range s.Body {
+		body[i] = &pb.Board_Snake_Coordinate{
+			X: coordinate.X,
+			Y: coordinate.Y,
+		}
+	}
+	return &pb.Board_Snake{
+		Body: body,
+		Health: s.Health,
+		Value: s.Value,
+	}
+}
+
+func SnakesFromProtobuf(pb map[uint32]*pb.Board_Snake) SnakeByValue {
+	snakes := make(SnakeByValue)
+	for k, v := range pb {
+		snakes[k] = SnakeFromProtobuf(v)
+	}
+	return snakes
+}
+
+func SnakeFromProtobuf(pb *pb.Board_Snake) *Snake {
+	body := make([]Coordinate, len(pb.GetBody()))
+	for i, coordinate := range pb.GetBody() {
+		body[i] = Coordinate{
+			X: coordinate.GetX(),
+			Y: coordinate.GetY(),
+		}
+	}
+	return &Snake{
+		Body: body,
+		Health: pb.GetHealth(),
+		Value: pb.GetValue(),
+		Moved: false,
+	}
 }
 
 func (s *Snake) Print() {
