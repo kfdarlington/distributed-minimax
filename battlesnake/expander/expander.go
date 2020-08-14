@@ -91,7 +91,7 @@ func Expand(ctx context.Context, pb *pb.Board, maximizingPlayer bool, outChan ch
 		// buffer channels to the maximum possible number of outputs so that there are no blocks
 		maxOutputs := int64(math.Pow(3, float64(len(board.Snakes)-1)))
 		branchChan := make(chan game.Board, maxOutputs)
-		var wg *sync.WaitGroup
+		var wg sync.WaitGroup
 		wg.Add(1)
 		branchChan <- board
 		go func() {
