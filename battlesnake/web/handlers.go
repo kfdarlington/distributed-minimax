@@ -80,7 +80,7 @@ func (h *handler) move(w http.ResponseWriter, r *http.Request, data interface{})
 	}
 	h.logger.Infof("game updated id=%s\n", state.Game.Id)
 
-	result := h.engine.ComputeMove(game.Games[state.Game.Id].Board, 1000) // process the move for x ms, leaving (500 - x) ms for the network
+	result := h.engine.ComputeMove(game.Games[state.Game.Id].Board, 400) // process the move for x ms, leaving (500 - x) ms for the network
 	res, err := json.Marshal(struct {
 		Move  string `json:"move"`
 		Shout string `json:"shout"`

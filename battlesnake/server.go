@@ -26,7 +26,7 @@ func Create(engine *leader.Leader, port int) *http.Server {
 	return &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", host, port),
 		Handler:      web.NewRouter(engine, lgger),
-		ReadTimeout:  time.Duration(1000) * time.Millisecond, // TODO remove hardcoding
-		WriteTimeout: time.Duration(1000) * time.Millisecond, // TODO remove hardcoding
+		ReadTimeout:  time.Duration(500) * time.Millisecond, // TODO remove hardcoding
+		WriteTimeout: time.Duration(500) * time.Millisecond, // TODO remove hardcoding
 	}
 }
