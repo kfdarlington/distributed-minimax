@@ -42,7 +42,7 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, maximizingPlayer b
 			l.logger.Errorf("unknown error receiving expansion, exiting err=%v", err)
 			return
 		}
-		l.logger.Infof("received expansion expansion=%v", expansion)
+		l.logger.Info("received expansion")
 		boardChan <- expansion.GetBoard()
 	}
 }
