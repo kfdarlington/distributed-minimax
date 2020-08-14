@@ -20,8 +20,7 @@ func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 	defer cancel()
 	root := b.ToProtobuf(false)
 	depth := 2 // starting depth of a single move
-	return l.startalphabeta(ctx, root, depth)
-	/*var move game.Move
+	var move game.Move
 	moveChan := make(chan game.Move)
 	go func() { moveChan <- game.DEFAULT_MOVE }()
 	for {
@@ -34,7 +33,7 @@ func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 			}(depth)
 			depth += 2
 		}
-	}*/
+	}
 }
 
 func (l *Leader) CloseConnections() {

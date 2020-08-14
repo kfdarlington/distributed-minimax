@@ -43,6 +43,11 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, maximizingPlayer b
 			return
 		}
 		l.logger.Info("received expansion")
-		boardChan <- expansion.GetBoard()
+		select {
+		case boardChan <- expansion.GetBoard():
+		case <-ctx.Done():
+			l.logger.Info("context expired while waiting to send board on channel, exiting")
+			return
+		}
 	}
 }
