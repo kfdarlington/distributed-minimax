@@ -106,11 +106,16 @@ func SnakeFromProtobuf(pb *pb.Board_Snake) *Snake {
 			Y: coordinate.GetY(),
 		}
 	}
+	moved := false
+	// we can always be set to moved as we move first and on our own
+	if pb.GetValue() == ME {
+		moved = true
+	}
 	return &Snake{
 		Body: body,
 		Health: pb.GetHealth(),
 		Value: pb.GetValue(),
-		Moved: false,
+		Moved: moved,
 	}
 }
 

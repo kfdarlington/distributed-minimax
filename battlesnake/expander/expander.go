@@ -55,7 +55,7 @@ func boardBranches(b game.Board, outChan chan<- game.Board) {
 	maxSize := 0
 	var largestSnakeValue uint32
 	for value, snake := range valueSnakeMap {
-		if !snake.Moved && len(snake.Body) > maxSize && snake.Value != game.ME {
+		if !snake.Moved && len(snake.Body) > maxSize {
 			maxSize = len(snake.Body)
 			largestSnakeValue = value
 		}
