@@ -5,6 +5,7 @@ import (
 	"github.com/kristian-d/distributed-minimax/battlesnake/game"
 	"github.com/kristian-d/distributed-minimax/engine/pb"
 	"math"
+	"sync"
 )
 
 func boardBranchesBySnakeMove(b game.Board, snakeValue uint32, outChan chan<- game.Board) {
@@ -66,7 +67,7 @@ func Expand(ctx context.Context, pb *pb.Board, maximizingPlayer bool, outChan ch
 	defer close(outChan)
 	board := game.BoardFromProtobuf(pb)
 	if maximizingPlayer {
-		branchChan := make(chan game.Board, 3)
+		branchChan := make(chan game.Board, 4)
 		go boardBranchesBySnakeMove(board, game.ME, branchChan)
 		for {
 			select {
@@ -90,8 +91,13 @@ func Expand(ctx context.Context, pb *pb.Board, maximizingPlayer bool, outChan ch
 		// buffer channels to the maximum possible number of outputs so that there are no blocks
 		maxOutputs := int64(math.Pow(3, float64(len(board.Snakes)-1)))
 		branchChan := make(chan game.Board, maxOutputs)
+		var wg *sync.WaitGroup
+		wg.Add(1)
 		branchChan <- board
-		// TODO make a new branchChan for each go func and merge them together with this branchChan
+		go func() {
+			wg.Wait()
+			close(branchChan)
+		}()
 		for {
 			select {
 			case branch, ok := <-branchChan:
@@ -105,8 +111,17 @@ func Expand(ctx context.Context, pb *pb.Board, maximizingPlayer bool, outChan ch
 						terminalState = false
 					}
 					outChan <- branch.ToProtobuf(terminalState)
+					wg.Done()
 				} else { // expand further (move another snake that has yet to be moved)
-					go boardBranches(branch, branchChan)
+					newBranchChan := make(chan game.Board, 4)
+					go func(c <-chan game.Board) {
+						defer wg.Done()
+						for branch := range c {
+							wg.Add(1)
+							branchChan <- branch
+						}
+					}(newBranchChan)
+					go boardBranches(branch, newBranchChan)
 				}
 			case <-ctx.Done():
 				return
