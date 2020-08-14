@@ -19,17 +19,22 @@ func (l *Leader) ComputeMove(b game.Board, deadline time.Duration) game.Move {
 	ctx, cancel := context.WithTimeout(context.Background(), deadline*time.Millisecond) // process the move for x ms, leaving (500 - x) ms for the network (for battlesnake)
 	defer cancel()
 	root := b.ToProtobuf(false)
-	move := game.DEFAULT_MOVE
 	depth := 2 // starting depth of a single move
+	return l.startalphabeta(ctx, root, depth)
+	/*var move game.Move
+	moveChan := make(chan game.Move)
+	go func() { moveChan <- game.DEFAULT_MOVE }()
 	for {
 		select {
 		case <-ctx.Done():
 			return move
-		default:
-			move = l.startalphabeta(ctx, root, depth)
+		case move = <-moveChan:
+			go func(d int) {
+				moveChan <- l.startalphabeta(ctx, root, d)
+			}(depth)
 			depth += 2
 		}
-	}
+	}*/
 }
 
 func (l *Leader) CloseConnections() {

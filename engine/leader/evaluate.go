@@ -28,6 +28,6 @@ func (l *Leader) evaluate(ctx context.Context, board *pb.Board) float32 {
 		return 0
 	}
 	score := evaluateReply.GetScore()
-	l.logger.Infof("calculated score of %f", score)
+	l.logger.Infof("received evaluation of %f", score)
 	return score
 }

@@ -21,7 +21,7 @@ func (s *minimaxServer) GetExpansion(req *pb.ExpandRequest, stream pb.Minimax_Ge
 		select {
 		case board, ok := <-resultChan:
 			if !ok {
-				s.logger.Info("board expansion finished on time")
+				s.logger.Info("board expansion finished")
 				return nil
 			}
 			reply := &pb.ExpandReply{
