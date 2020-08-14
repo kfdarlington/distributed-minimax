@@ -16,19 +16,19 @@ func boardBranchesBySnakeMove(b game.Board, snakeValue uint32, outChan chan<- ga
 	coords := make([]game.Coordinate, 0, 4)
 	if head.X > 0 {
 		coords = coords[:len(coords) + 1]
-		coords[len(coords) + 1] = game.Coordinate{X: head.X-1, Y: head.Y}
+		coords[len(coords) - 1] = game.Coordinate{X: head.X-1, Y: head.Y}
 	}
 	if head.Y > 0 {
 		coords = coords[:len(coords) + 1]
-		coords[len(coords) + 1] = game.Coordinate{X: head.X, Y: head.Y-1}
+		coords[len(coords) - 1] = game.Coordinate{X: head.X, Y: head.Y-1}
 	}
 	if head.X < b.Grid.GetWidth() - 1 {
 		coords = coords[:len(coords) + 1]
-		coords[len(coords) + 1] = game.Coordinate{X: head.X+1, Y: head.Y}
+		coords[len(coords) - 1] = game.Coordinate{X: head.X+1, Y: head.Y}
 	}
 	if head.Y < b.Grid.GetHeight() - 1 {
 		coords = coords[:len(coords) + 1]
-		coords[len(coords) + 1] = game.Coordinate{X: head.X, Y: head.Y+1}
+		coords[len(coords) - 1] = game.Coordinate{X: head.X, Y: head.Y+1}
 	}
 
 	// of the possible move options, do some more checking and, if move still possible, move snake to new coordinate
