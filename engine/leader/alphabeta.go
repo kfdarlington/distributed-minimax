@@ -31,7 +31,7 @@ func (l *Leader) startalphabeta(ctx context.Context, b *pb.Board, depth int) gam
 	beta := math.Inf(1) // positive infinity
 	bestMove := game.DEFAULT_MOVE // arbitrary move
 
-	go l.expand(ctx2, b, boardChan)
+	go l.expand(ctx2, b, true, boardChan)
 	for {
 		select {
 		case newBoard, ok := <-boardChan:
@@ -85,7 +85,7 @@ func (l *Leader) startalphabeta(ctx context.Context, b *pb.Board, depth int) gam
 }
 
 func (l *Leader) alphabeta(ctx context.Context, b *pb.Board, depth int, alpha float64, beta float64, maximizingPlayer bool, resultChan chan float64) {
-	if depth == 0 {
+	if depth == 0 || b.TerminalState { // if the max depth was reached or it is not possible to expand the board any further, evaluate the board
 		resultChan <- float64(l.evaluate(ctx, b))
 		return
 	}
@@ -116,7 +116,7 @@ func (l *Leader) alphabeta(ctx context.Context, b *pb.Board, depth int, alpha fl
 		alphaOrBetaDescriptor = "beta"
 	}
 
-	go l.expand(ctx2, b, boardChan)
+	go l.expand(ctx2, b, maximizingPlayer, boardChan)
 	for {
 		select {
 		case newBoard, ok := <-boardChan:

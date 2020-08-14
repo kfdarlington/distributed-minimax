@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *pb.Board) {
+func (l *Leader) expand(ctx context.Context, board *pb.Board, maximizingPlayer bool, boardChan chan<- *pb.Board) {
 	defer close(boardChan)
 
 	// find an available follower
@@ -25,6 +25,7 @@ func (l *Leader) expand(ctx context.Context, board *pb.Board, boardChan chan<- *
 	client := *follower.GetClient()
 	stream, err := client.GetExpansion(ctx, &pb.ExpandRequest{
 		Board: board,
+		IsMaximizerTurn: maximizingPlayer,
 	})
 	if err != nil {
 		l.logger.Errorf("error requesting expansion from follower client=%v err=%v", client, err)

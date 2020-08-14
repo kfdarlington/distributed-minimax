@@ -31,10 +31,12 @@ message Board {
 
   Grid grid = 1;
   map<uint32, Snake> snakes = 2;
+  bool TerminalState = 3;
 }
 
 message ExpandRequest {
   Board board = 1;
+  bool IsMaximizerTurn = 2;
 }
 
 message EvaluateRequest {
