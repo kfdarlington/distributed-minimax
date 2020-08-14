@@ -16,7 +16,7 @@ type minimaxServer struct {
 
 func (s *minimaxServer) GetExpansion(req *pb.ExpandRequest, stream pb.Minimax_GetExpansionServer) error {
 	resultChan := make(chan *pb.Board)
-	go expander.Expand(stream.Context(), req.GetBoard(), req.GetIsMaximizingPlayer(), resultChan)
+	go expander.Expand(stream.Context(), req.GetBoard(), req.GetIsMaximizerTurn(), resultChan)
 	for {
 		select {
 		case board, ok := <-resultChan:
